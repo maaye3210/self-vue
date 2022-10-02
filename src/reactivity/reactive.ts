@@ -1,3 +1,4 @@
+import { isObject } from '../shared';
 import { mutableHandlers, readonlyHandlers, shallowReadonlyHandlers } from './baseHandlers';
 
 export enum Reactive_Flags {
@@ -13,8 +14,11 @@ export const readonly = (raw) => {
   return createActiveObject(raw, readonlyHandlers)
 }
 
-function createActiveObject(raw, baseHandler) {
-  return new Proxy(raw, baseHandler)
+function createActiveObject(target, baseHandler) {
+  if (!isObject(target)) {
+    return console.warn(`target ${target} is not a object`)
+  }
+  return new Proxy(target, baseHandler)
 }
 
 export const isReactive = (target) => {

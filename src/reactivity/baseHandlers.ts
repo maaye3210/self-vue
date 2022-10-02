@@ -36,7 +36,7 @@ const creatSetter = () => {
 }
 
 const readonlySetter = function (target, key) {
-  console.warn(`${String(key)}set 失败，因为是只读类型`, target);
+  console.warn(`${String(key)} set 失败，因为是只读类型`, target);
   return true
 }
 
