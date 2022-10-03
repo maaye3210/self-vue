@@ -6,3 +6,4 @@ export const hashChanged = (oldValue, newValue) => !Object.is(oldValue, newValue
 
 export const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
 
+export const EMPTY_OBJ = {}
