@@ -15,6 +15,7 @@ export function createComponentInstance(vnode, parent) {
     props: {},
     emit: () => { },
     slots: {},
+    next: null,
     provider: parent ? parent.provider : {},
     parent,
     subTree: {},

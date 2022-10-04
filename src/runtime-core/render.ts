@@ -4,9 +4,16 @@ import { createAppAPI } from './creatApp';
 import { ShapeFlags } from './ShapeFlags';
 import { Fragment, Text } from './vnode';
 import { EMPTY_OBJ } from '../shared';
+import { shouldUpdateComponent } from "./componentUpdateUtils";
 
 export function createRenderer(option) {
-  const { createElement: hostCreateElement, patchProps: hostPatchProps, insert: hostInsert, remove: hostRemove, setElementText: hostSetElementText } = option
+  const {
+    createElement: hostCreateElement,
+    patchProps: hostPatchProps,
+    insert: hostInsert,
+    remove: hostRemove,
+    setElementText: hostSetElementText
+  } = option
 
   function render(vnode, container) {
     patch(null, vnode, container, null, null)
@@ -48,7 +55,12 @@ export function createRenderer(option) {
 
   // 组件的挂载流程
   function processComponent(n1, n2: any, container: any, parent, anchor) {
-    mountComponent(n2, container, parent, anchor)
+    if (!n1) {
+      mountComponent(n2, container, parent, anchor)
+    } else {
+      updateComponent(n1, n2)
+    }
+
   }
 
   // 区分元素的挂载与更新流程
@@ -57,6 +69,17 @@ export function createRenderer(option) {
       mountElement(n2, container, parent, anchor)
     } else {
       updateElement(n1, n2, container, parent, anchor)
+    }
+  }
+
+  function updateComponent(n1, n2) {
+    const instance = (n2.component = n1.component);
+    if (shouldUpdateComponent(n1, n2)) {
+      instance.next = n2;
+      instance.update();
+    } else {
+      n2.el = n1.el;
+      instance.vnode = n2;
     }
   }
 
@@ -288,15 +311,24 @@ export function createRenderer(option) {
   }
 
   // 给组件创建instance实例，初始化组件
-  function mountComponent(initialVNode, container, parent, anchor) {
-    const instance = createComponentInstance(initialVNode, parent)
+  function mountComponent(initialVNode, container, parentComponent, anchor) {
+    const instance = (initialVNode.component = createComponentInstance(
+      initialVNode,
+      parentComponent
+    ));
     setupComponent(instance)
     setupRenderEffect(instance, initialVNode, container, anchor)
   }
 
+  function updateComponentPreRender(instance, nextVNode) {
+    instance.vnode = nextVNode;
+    instance.next = null;
+    instance.props = nextVNode.props;
+  }
+
   // 
   function setupRenderEffect(instance, initialVNode, container, anchor) {
-    effect(
+    instance.update = effect(
       () => {
         if (!instance.isMounted) {
           console.log('mountComponent', instance);
@@ -309,11 +341,15 @@ export function createRenderer(option) {
           instance.isMounted = true
         } else {
           console.log('updateComponent', instance);
-          const { proxy } = instance
-          // 将代理对象绑定给组件实例，这样就能直接通过this来访问了
+          const { next, vnode, proxy } = instance;
+          if (next) {
+            next.el = vnode.el;
+            updateComponentPreRender(instance, next);
+          }
           const subTree = instance.render.call(proxy)
           const preSubTree = instance.subTree
           patch(preSubTree, subTree, container, instance, anchor)
+          instance.subTree = subTree
         }
       }
     )
