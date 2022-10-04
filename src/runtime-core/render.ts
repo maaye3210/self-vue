@@ -5,6 +5,7 @@ import { ShapeFlags } from './ShapeFlags';
 import { Fragment, Text } from './vnode';
 import { EMPTY_OBJ } from '../shared';
 import { shouldUpdateComponent } from "./componentUpdateUtils";
+import { queueJobs } from './scheduler';
 
 export function createRenderer(option) {
   const {
@@ -351,7 +352,13 @@ export function createRenderer(option) {
           patch(preSubTree, subTree, container, instance, anchor)
           instance.subTree = subTree
         }
+      },
+      {
+        scheduler() {
+          queueJobs(instance.update);
+        },
       }
+
     )
   }
 
