@@ -64,13 +64,14 @@ export function createRenderer(option) {
 
   }
 
-  // 区分元素的挂载与更新流程
-  function processElement(n1, n2: any, container: any, parent, anchor) {
-    if (!n1) {
-      mountElement(n2, container, parent, anchor)
-    } else {
-      updateElement(n1, n2, container, parent, anchor)
-    }
+  // 给组件创建instance实例，初始化组件
+  function mountComponent(initialVNode, container, parentComponent, anchor) {
+    const instance = (initialVNode.component = createComponentInstance(
+      initialVNode,
+      parentComponent
+    ));
+    setupComponent(instance)
+    setupRenderEffect(instance, initialVNode, container, anchor)
   }
 
   function updateComponent(n1, n2) {
@@ -82,6 +83,37 @@ export function createRenderer(option) {
       n2.el = n1.el;
       instance.vnode = n2;
     }
+  }
+
+  // 区分元素的挂载与更新流程
+  function processElement(n1, n2: any, container: any, parent, anchor) {
+    if (!n1) {
+      mountElement(n2, container, parent, anchor)
+    } else {
+      updateElement(n1, n2, container, parent, anchor)
+    }
+  }
+
+  // 根据元素的虚拟节点进行挂载，递归挂载子节点
+  function mountElement(initialVNode: any, container: any, parent, anchor) {
+    console.log('mountElement', initialVNode);
+    const el = (initialVNode.el = hostCreateElement(initialVNode.type))
+    const { children, props, shapeFlag } = initialVNode
+
+    // 使用位运算判断虚拟节点类型
+    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      el.textContent = children
+    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      mountArrayChildren(children, el, parent, anchor)
+    }
+
+    for (const key in props) {
+      const val = props[key]
+
+      hostPatchProps(el, key, null, val)
+    }
+
+    hostInsert(el, container, anchor)
   }
 
   function updateElement(n1, n2, container, parentComponent, anchor) {
@@ -115,7 +147,6 @@ export function createRenderer(option) {
         hostSetElementText(container, '')
         mountArrayChildren(children2, container, parentComponent, anchor)
       } else {
-        // array diff array
         patchKeyedChildren(children1, children2, container, parentComponent, anchor);
       }
     }
@@ -282,27 +313,7 @@ export function createRenderer(option) {
     }
   }
 
-  // 根据元素的虚拟节点进行挂载，递归挂载子节点
-  function mountElement(initialVNode: any, container: any, parent, anchor) {
-    console.log('mountElement', initialVNode);
-    const el = (initialVNode.el = hostCreateElement(initialVNode.type))
-    const { children, props, shapeFlag } = initialVNode
 
-    // 使用位运算判断虚拟节点类型
-    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
-      el.textContent = children
-    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-      mountArrayChildren(children, el, parent, anchor)
-    }
-
-    for (const key in props) {
-      const val = props[key]
-
-      hostPatchProps(el, key, null, val)
-    }
-
-    hostInsert(el, container, anchor)
-  }
 
   // 递归挂载子节点
   function mountArrayChildren(children, container, parent, anchor) {
@@ -311,15 +322,7 @@ export function createRenderer(option) {
     })
   }
 
-  // 给组件创建instance实例，初始化组件
-  function mountComponent(initialVNode, container, parentComponent, anchor) {
-    const instance = (initialVNode.component = createComponentInstance(
-      initialVNode,
-      parentComponent
-    ));
-    setupComponent(instance)
-    setupRenderEffect(instance, initialVNode, container, anchor)
-  }
+
 
   function updateComponentPreRender(instance, nextVNode) {
     instance.vnode = nextVNode;
@@ -335,7 +338,7 @@ export function createRenderer(option) {
           console.log('mountComponent', instance);
           const { proxy } = instance
           // 将代理对象绑定给组件实例，这样就能直接通过this来访问了
-          const subTree = (instance.subTree = instance.render.call(proxy))
+          const subTree = (instance.subTree = instance.render.call(proxy, proxy))
           patch(null, subTree, container, instance, anchor)
           // 组件挂载完成后将根元素挂载到组件实例的虚拟节点上
           initialVNode.el = subTree.el
@@ -347,7 +350,7 @@ export function createRenderer(option) {
             next.el = vnode.el;
             updateComponentPreRender(instance, next);
           }
-          const subTree = instance.render.call(proxy)
+          const subTree = instance.render.call(proxy, proxy)
           const preSubTree = instance.subTree
           patch(preSubTree, subTree, container, instance, anchor)
           instance.subTree = subTree
