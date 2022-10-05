@@ -12,11 +12,12 @@ export function baseParse(content: string) {
   return createRoot(parseChildren());
 }
 
-function getNextState(content: string) {
-  if (content.startsWith('{{')) {
+function getNextState() {
+  const source = context.source
+  if (source.startsWith('{{')) {
     return NodeTypes.INTERPOLATION
   }
-  if (/^<[a-z]*>/i.test(content)) {
+  if (/^<[a-z]*>/i.test(source)) {
     return NodeTypes.ELEMENT
   }
   return NodeTypes.TEXT
@@ -32,7 +33,7 @@ function parseChildren() {
   const nodes: any = [];
 
   while (!isEnd()) {
-    const currentHandle = stateHandle.get(getNextState(context.source)) as Function
+    const currentHandle = stateHandle.get(getNextState()) as Function
     const node = currentHandle()
     nodes.push(node);
   }
