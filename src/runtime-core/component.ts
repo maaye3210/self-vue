@@ -6,6 +6,7 @@ import { initProps } from './compontProps';
 import { proxyRefs } from '../reactivity';
 
 let currentInstance = null
+let compiler;
 
 export function createComponentInstance(vnode, parent) {
   const component = {
@@ -58,7 +59,15 @@ function handleSetupResult(instance, setupResult: any) {
 // 最后将Component上的render放在instance上
 function finishComponentSetup(instance) {
   const Component = instance.type
+
+
+  if (compiler && !Component.render) {
+    if (Component.template) {
+      Component.render = compiler(Component.template);
+    }
+  }
   instance.render = Component.render
+
 }
 
 export function getCurrentInstance() {
@@ -69,3 +78,6 @@ function setCurrentInstance(instance) {
   currentInstance = instance
 }
 
+export function registerRuntimeCompiler(_compiler) {
+  compiler = _compiler;
+}

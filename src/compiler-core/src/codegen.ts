@@ -16,6 +16,7 @@ export function generate(ast) {
   push("return ");
   genNode(ast.codegenNode, context);
   push("}");
+  debugger
 
   return {
     code: context.code,

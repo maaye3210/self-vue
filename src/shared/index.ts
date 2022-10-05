@@ -9,3 +9,7 @@ export const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, ke
 export const EMPTY_OBJ = {}
 
 export const isString = (value) => typeof value === "string"
+
+export function toDisplayString(value) {
+  return String(value);
+}
