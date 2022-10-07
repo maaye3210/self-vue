@@ -15,6 +15,7 @@ const creatGetter = (isReadonly = false, isShallow = false) => {
 
     // 如果是一个对象，则将这个对象也响应式化
     // ShallowReadonly第一层不需要响应式处理
+    // TODO 如果返回的是一个对象。第一次需要新建它的响应式对象，第二次就应该直接返回这个响应式对象，而不是重新创建，因此，以下这种方法是不合理的
     if (!isShallow && isObject(res)) {
       return isReadonly ? readonly(res) : reactive(res)
     }
