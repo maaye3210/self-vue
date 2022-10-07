@@ -44,10 +44,12 @@ export const isRef = (value) => {
   return !!value.__v_isRef
 }
 
+// 用于解构ref对象，不用写.value
 export const unRef = (ref) => {
   return ref.__v_isRef ? ref.value : ref
 }
 
+// 用于解构有ref的对象，不用写.value
 export const proxyRefs = (objectWithRef) => {
   return new Proxy(objectWithRef, {
     get: (target, key) => {

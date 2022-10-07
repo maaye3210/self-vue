@@ -5,6 +5,7 @@ import { isObject } from '../shared';
 
 const creatGetter = (isReadonly = false, isShallow = false) => {
   return function get(target, key) {
+    // 如果是isReactive或者isReadonly调用，则会查询这两个标志值，用闭包返回即可
     if (key === Reactive_Flags.IS_REACTIVE) {
       return !isReadonly
     } else if (key === Reactive_Flags.IS_READONLY) {
@@ -12,14 +13,13 @@ const creatGetter = (isReadonly = false, isShallow = false) => {
     }
     const res = Reflect.get(target, key)
 
-    if (isShallow) {
-      return res
-    }
-
-    if (isObject(res)) {
+    // 如果是一个对象，则将这个对象也响应式化
+    // ShallowReadonly第一层不需要响应式处理
+    if (!isShallow && isObject(res)) {
       return isReadonly ? readonly(res) : reactive(res)
     }
 
+    // readonly无需触发track
     if (!isReadonly) {
       track(target, key)
     }
@@ -27,6 +27,7 @@ const creatGetter = (isReadonly = false, isShallow = false) => {
     return res
   }
 }
+
 const creatSetter = () => {
   return function set(target, key, value) {
     const res = Reflect.set(target, key, value)
@@ -35,19 +36,20 @@ const creatSetter = () => {
   }
 }
 
+// readonly触发setter报错
 const readonlySetter = function (target, key) {
   console.warn(`${String(key)} set 失败，因为是只读类型`, target);
   return true
 }
 
-const get = creatGetter()
-const set = creatSetter()
+const getter = creatGetter()
+const setter = creatSetter()
 const readonlyGetter = creatGetter(true)
-const shallowReadonly = creatGetter(true, true)
+const shallowReadonlyGetter = creatGetter(true, true)
 
 export const mutableHandlers = {
-  get: get,
-  set: set
+  get: getter,
+  set: setter
 }
 export const readonlyHandlers = {
   get: readonlyGetter,
@@ -55,6 +57,6 @@ export const readonlyHandlers = {
 }
 
 export const shallowReadonlyHandlers = {
-  get: shallowReadonly,
+  get: shallowReadonlyGetter,
   set: readonlySetter
 }

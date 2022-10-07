@@ -29,7 +29,7 @@ export function createRenderer(option) {
         processFragment(n1, n2, container, parent, anchor)
         break;
       case Text:
-        processText(n1, n2, container, parent, anchor)
+        processText(n1, n2, container)
         break;
 
       default:
@@ -44,15 +44,41 @@ export function createRenderer(option) {
 
 
   function processFragment(n1, n2: any, container: any, parent, anchor) {
-    mountArrayChildren(n2.children, container, parent, anchor)
+    if (!n1) {
+      mountArrayChildren(n2.children, container, parent, anchor)
+    } else {
+      updateArrayChildren(n1, n2, container, parent, anchor)
+    }
   }
 
-  function processText(n1, n2: any, container: any, parent, anchor) {
-    const { children } = n2;
-    const textNode = (n2.el = document.createTextNode(children));
+  function updateArrayChildren(n1, n2, container, parent, anchor) {
+    console.log('updateFragment');
+    console.log('n1', n1);
+    console.log('n2', n2);
+  }
+
+  function processText(n1, n2: any, container: any) {
+    if (!n1) {
+      mountTextChildren(n2, container)
+    } else {
+      updateTextChildren(n1, n2)
+    }
+  }
+
+  function mountTextChildren(n2: any, container: any) {
+    const { children: newText } = n2;
+    const textNode = (n2.el = document.createTextNode(newText));
     container.append(textNode);
   }
 
+  function updateTextChildren(n1, n2) {
+    const { children: newText } = n2;
+    const { children: oldText } = n1;
+    const el = (n2.el = n1.el)
+    if (newText !== oldText) {
+      el.data = newText
+    }
+  }
 
   // 组件的挂载流程
   function processComponent(n1, n2: any, container: any, parent, anchor) {
@@ -116,16 +142,21 @@ export function createRenderer(option) {
     hostInsert(el, container, anchor)
   }
 
+  // 递归挂载子节点
+  function mountArrayChildren(children, container, parent, anchor) {
+    children.forEach(v => {
+      patch(null, v, container, parent, anchor)
+    })
+  }
+
   function updateElement(n1, n2, container, parentComponent, anchor) {
     console.log('updateElement');
     console.log('old-vnode', n1);
     console.log('new-vnode', n2);
-
     const el = (n2.el = n1.el)
 
     const oldProps = n1.props || EMPTY_OBJ
     const newProps = n2.props || EMPTY_OBJ
-    // debugger
     patchChildren(n1, n2, el, parentComponent, anchor)
     patchProps(el, oldProps, newProps)
   }
@@ -152,6 +183,28 @@ export function createRenderer(option) {
     }
   }
 
+  function patchProps(el, oldProps, newProps) {
+    if (oldProps !== newProps) {
+      for (const key in newProps) {
+        const prevProp = oldProps[key]
+        const newProp = newProps[key]
+        if (prevProp !== newProp) {
+          hostPatchProps(el, key, prevProp, newProp)
+        }
+      }
+
+      if (oldProps !== EMPTY_OBJ) {
+        for (const key in oldProps) {
+          if (!(key in newProps)) {
+            hostPatchProps(el, key, oldProps[key], null)
+          }
+        }
+      }
+
+    }
+  }
+
+  // 当新旧子元素都是Array类型的时候，使用diff算法进行更新
   function patchKeyedChildren(
     c1,
     c2,
@@ -292,35 +345,6 @@ export function createRenderer(option) {
     }
   }
 
-  function patchProps(el, oldProps, newProps) {
-    if (oldProps !== newProps) {
-      for (const key in newProps) {
-        const prevProp = oldProps[key]
-        const newProp = newProps[key]
-        if (prevProp !== newProp) {
-          hostPatchProps(el, key, prevProp, newProp)
-        }
-      }
-
-      if (oldProps !== EMPTY_OBJ) {
-        for (const key in oldProps) {
-          if (!(key in newProps)) {
-            hostPatchProps(el, key, oldProps[key], null)
-          }
-        }
-      }
-
-    }
-  }
-
-
-
-  // 递归挂载子节点
-  function mountArrayChildren(children, container, parent, anchor) {
-    children.forEach(v => {
-      patch(null, v, container, parent, anchor)
-    })
-  }
 
 
 
@@ -335,25 +359,9 @@ export function createRenderer(option) {
     instance.update = effect(
       () => {
         if (!instance.isMounted) {
-          console.log('mountComponent', instance);
-          const { proxy } = instance
-          // 将代理对象绑定给组件实例，这样就能直接通过this来访问了
-          const subTree = (instance.subTree = instance.render.call(proxy, proxy))
-          patch(null, subTree, container, instance, anchor)
-          // 组件挂载完成后将根元素挂载到组件实例的虚拟节点上
-          initialVNode.el = subTree.el
-          instance.isMounted = true
+          mountRenderEffect(instance, initialVNode, container, anchor)
         } else {
-          console.log('updateComponent', instance);
-          const { next, vnode, proxy } = instance;
-          if (next) {
-            next.el = vnode.el;
-            updateComponentPreRender(instance, next);
-          }
-          const subTree = instance.render.call(proxy, proxy)
-          const preSubTree = instance.subTree
-          patch(preSubTree, subTree, container, instance, anchor)
-          instance.subTree = subTree
+          updateRenderEffect(instance, container, anchor)
         }
       },
       {
@@ -361,10 +369,32 @@ export function createRenderer(option) {
           queueJobs(instance.update);
         },
       }
-
     )
   }
 
+  function mountRenderEffect(instance: any, initialVNode: any, container: any, anchor: any) {
+    console.log('mountComponent', instance);
+    const { proxy } = instance
+    // 将代理对象绑定给组件实例，这样就能直接通过this来访问了
+    const subTree = (instance.subTree = instance.render.call(proxy, proxy))
+    patch(null, subTree, container, instance, anchor)
+    // 组件挂载完成后将根元素挂载到组件实例的虚拟节点上
+    initialVNode.el = subTree.el
+    instance.isMounted = true
+  }
+
+  function updateRenderEffect(instance: any, container: any, anchor: any) {
+    console.log('updateComponent', instance);
+    const { next, vnode, proxy } = instance;
+    if (next) {
+      next.el = vnode.el;
+      updateComponentPreRender(instance, next);
+    }
+    const subTree = instance.render.call(proxy, proxy)
+    const preSubTree = instance.subTree
+    instance.subTree = subTree
+    patch(preSubTree, subTree, container, instance, anchor)
+  }
   return {
     createApp: createAppAPI(render)
   }

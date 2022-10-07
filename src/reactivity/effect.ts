@@ -74,6 +74,7 @@ export function trigger(target, key) {
 
 export function tiggerEffect(dep) {
   for (const effect of dep) {
+    // 如果存在scheduler则调用scheduler，不存在则调用默认的run，在vue中会与返回的run方法共同用在异步渲染上
     if (effect.scheduler) {
       effect.scheduler()
     } else {

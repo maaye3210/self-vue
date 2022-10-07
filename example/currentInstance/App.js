@@ -3,7 +3,10 @@ import { Foo } from './Foo.js'
 window.self = null
 export const App = {
   setup() {
-    console.log(getCurrentInstance())
+    console.log('getCurrentInstance', getCurrentInstance())
+    return {
+      name: 'hhh'
+    }
   },
   render() {
     window.self = this
