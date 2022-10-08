@@ -1,0 +1,17 @@
+{
+  "name": "self-vue",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@self-vue/compiler-core": "workspace:^1.0.0",
+    "@self-vue/runtime-core": "workspace:^1.0.0",
+    "@self-vue/runtime-dom": "workspace:^1.0.0"
+  }
+}

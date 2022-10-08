@@ -1,9 +1,9 @@
-import { effect } from '../reactivity/effect';
+import { effect } from '@self-vue/reactivity';
 import { createComponentInstance, setupComponent } from './component';
 import { createAppAPI } from './creatApp';
 import { ShapeFlags } from './ShapeFlags';
 import { Fragment, Text } from './vnode';
-import { EMPTY_OBJ } from '../shared';
+import { EMPTY_OBJ } from '@self-vue/shared';
 import { shouldUpdateComponent } from "./componentUpdateUtils";
 import { queueJobs } from './scheduler';
 
