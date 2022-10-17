@@ -1,9 +1,8 @@
-import { shallowReadonly } from "@self-vue/reactivity";
+import { shallowReadonly, proxyRefs } from "@self-vue/reactivity";
 import { emit } from "./componentEmit";
 import { PublicInstanceProxyHandlers } from "./componentPublicInstance"
 import { initSlots } from "./componentSlot";
 import { initProps } from './compontProps';
-import { proxyRefs } from '@self-vue/reactivity';
 
 let currentInstance = null
 let compiler;
